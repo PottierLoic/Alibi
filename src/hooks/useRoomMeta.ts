@@ -9,7 +9,7 @@ export function useRoomMeta(roomCode: string) {
   useEffect(() => {
     async function fetchRoom() {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('rooms')
         .select('*')
         .eq('code', roomCode)

@@ -11,8 +11,8 @@ import { PlayerList } from '@/components/PlayerList';
 export default function RoomPage() {
   const params = useParams();
   const roomCode = typeof params.code === 'string' ? params.code : Array.isArray(params.code) ? params.code[0] : '';
-  const { room, loading: roomLoading } = useRoomMeta(roomCode);
-  const { players, loading: playersLoading } = useRoomPlayers(room?.id);
+  const { room } = useRoomMeta(roomCode);
+  const { players } = useRoomPlayers(room?.id);
   const { renamePlayer } = useRenamePlayer();
   const { movePlayer } = useMovePlayer();
 
@@ -25,8 +25,6 @@ export default function RoomPage() {
   const [copied, setCopied] = useState(false);
   const [editingHost, setEditingHost] = useState(false);
   const [hostName, setHostName] = useState(host?.pseudo || '');
-  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [playerName, setPlayerName] = useState<string>('');
 
   const myPseudo = typeof window !== 'undefined' ? localStorage.getItem('pseudo') ?? '' : '';
 

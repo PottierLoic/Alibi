@@ -9,7 +9,7 @@ export function useRoomPlayers(roomId: string | undefined) {
   useEffect(() => {
     if (!roomId) return;
 
-    let subscription: any;
+    let subscription: ReturnType<typeof supabase['channel']> | null = null;
 
     async function fetchPlayers() {
       const { data } = await supabase
