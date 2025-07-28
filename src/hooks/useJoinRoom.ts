@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 export function useJoinRoom() {
   const [loading, setLoading] = useState(false);
@@ -17,9 +18,12 @@ export function useJoinRoom() {
       return { error: 'Room not found' };
     }
 
+    const playerId = uuidv4();
+
     const { error: playerError } = await supabase
       .from('players')
       .insert({
+        id: playerId,
         pseudo: username,
         duo: null,
         is_host: false,
@@ -30,7 +34,7 @@ export function useJoinRoom() {
     if (playerError) {
       return { error: 'Could not join room' };
     }
-    return { success: true };
+    return { success: true, playerId };
   };
 
   return { joinRoom, loading };

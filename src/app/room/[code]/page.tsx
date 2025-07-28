@@ -1,21 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { useRoom } from '@/hooks/useRoom';
+import { useRoomMeta } from '@/hooks/useRoomMeta';
+import { useRoomPlayers } from '@/hooks/useRoomPlayers';
 import { useRenamePlayer } from '@/hooks/useRenamePlayer';
+import { useMovePlayer } from '@/hooks/useMovePlayer';
 import { useParams } from 'next/navigation';
+import { PlayerList } from '@/components/PlayerList';
 
 export default function RoomPage() {
   const params = useParams();
   const roomCode = typeof params.code === 'string' ? params.code : Array.isArray(params.code) ? params.code[0] : '';
-  const { room, host, duo1, duo2, spectators, loading } = useRoom(roomCode);
+  const { room, loading: roomLoading } = useRoomMeta(roomCode);
+  const { players, loading: playersLoading } = useRoomPlayers(room?.id);
   const { renamePlayer } = useRenamePlayer();
+  const { movePlayer } = useMovePlayer();
+
+  // Split players
+  const host = players.find((p) => p.is_host) || null;
+  const duo1 = players.filter((p) => p.duo === 1);
+  const duo2 = players.filter((p) => p.duo === 2);
+  const spectators = players.filter((p) => p.duo === null && !p.is_host);
 
   const [copied, setCopied] = useState(false);
   const [editingHost, setEditingHost] = useState(false);
   const [hostName, setHostName] = useState(host?.pseudo || '');
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [playerName, setPlayerName] = useState<string>('');
 
-  const myPseudo = typeof window !== 'undefined' ? localStorage.getItem('pseudo') : '';
+  const myPseudo = typeof window !== 'undefined' ? localStorage.getItem('pseudo') ?? '' : '';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomCode);
@@ -40,6 +53,21 @@ export default function RoomPage() {
       }
     }
   };
+
+  const handlePlayerRename = async (playerId: string, oldPseudo: string, newPseudo: string) => {
+    if (newPseudo.trim() && newPseudo !== oldPseudo) {
+      const success = await renamePlayer(playerId, newPseudo.trim());
+      if (success && myPseudo === oldPseudo) {
+        localStorage.setItem('pseudo', newPseudo.trim());
+      }
+    }
+  };
+
+  const handleMovePlayer = async (playerId: string, duo: 1 | 2 | null) => {
+    await movePlayer(playerId, duo);
+  };
+
+  const myPlayer = players.find((p) => p.pseudo === myPseudo);
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-950 text-gray-100 p-6">
@@ -105,42 +133,30 @@ export default function RoomPage() {
           </ul>
         </div>
         <div className="flex flex-row gap-6 justify-center items-start w-full">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-green-300 mb-2 text-center">Duo 1</h2>
-            <ul className="flex flex-col gap-2 items-center">
-              {duo1.length > 0 ? (
-                duo1.map((p) => (
-                  <li key={p.id} className="bg-gray-700 rounded-lg px-4 py-1 text-gray-100 w-full text-center">{p.pseudo}</li>
-                ))
-              ) : (
-                <li className="text-gray-500 w-full text-center">None</li>
-              )}
-            </ul>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-pink-300 mb-2 text-center">Duo 2</h2>
-            <ul className="flex flex-col gap-2 items-center">
-              {duo2.length > 0 ? (
-                duo2.map((p) => (
-                  <li key={p.id} className="bg-gray-700 rounded-lg px-4 py-1 text-gray-100 w-full text-center">{p.pseudo}</li>
-                ))
-              ) : (
-                <li className="text-gray-500 w-full text-center">None</li>
-              )}
-            </ul>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-gray-300 mb-2 text-center">Spectators</h2>
-            <ul className="flex flex-col gap-2 items-center">
-              {spectators.length > 0 ? (
-                spectators.map((s) => (
-                  <li key={s.id} className="bg-gray-700 rounded-lg px-4 py-1 text-gray-100 w-full text-center">{s.pseudo}</li>
-                ))
-              ) : (
-                <li className="text-gray-500 w-full text-center">None</li>
-              )}
-            </ul>
-          </div>
+          <PlayerList
+            title="Duo 1"
+            players={duo1}
+            myPlayer={myPlayer}
+            onRename={handlePlayerRename}
+            onMove={() => myPlayer?.id && handleMovePlayer(myPlayer.id, 1)}
+            teamValue={1}
+          />
+          <PlayerList
+            title="Duo 2"
+            players={duo2}
+            myPlayer={myPlayer}
+            onRename={handlePlayerRename}
+            onMove={() => myPlayer?.id && handleMovePlayer(myPlayer.id, 2)}
+            teamValue={2}
+          />
+          <PlayerList
+            title="Spectators"
+            players={spectators}
+            myPlayer={myPlayer}
+            onRename={handlePlayerRename}
+            onMove={() => myPlayer?.id && handleMovePlayer(myPlayer.id, null)}
+            teamValue={null}
+          />
         </div>
         <button
           onClick={handleStart}
