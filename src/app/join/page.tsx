@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useJoinRoom } from '@/hooks/useJoinRoom';
 
 export default function JoinPage() {
+  return (
+    <Suspense>
+      <JoinPageContent />
+    </Suspense>
+  );
+}
+
+function JoinPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get('code') || '';
